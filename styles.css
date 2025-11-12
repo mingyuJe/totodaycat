@@ -131,12 +131,15 @@ h1 {
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 24px;
-  padding: 20px;
+  font-size: 4vw;
+  padding: 1vw;
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s ease;
   aspect-ratio: 1 / 1;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
 }
 
 .grid-cell.clicked {
