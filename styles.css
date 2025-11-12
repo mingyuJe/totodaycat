@@ -9,8 +9,9 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
   background-color: #f4f4f4;
+  padding: 20px 0;
 }
 
 #game-container {
@@ -43,7 +44,7 @@ h1 {
   font-weight: bold;
   color: #1976D2;
   flex: 1;
-  min-width: 140px;
+  min-width: 100px;
 }
 
 #round-display span:last-child {
@@ -60,7 +61,7 @@ h1 {
   font-weight: bold;
   color: #E65100;
   flex: 1;
-  min-width: 140px;
+  min-width: 100px;
 }
 
 #timer-display span:nth-child(2) {
@@ -72,47 +73,52 @@ h1 {
 /* 휴대폰 반응형 (600px 이하) */
 @media (max-width: 600px) {
   body {
-    height: auto;
-    padding: 20px 0;
+    min-height: auto;
+    padding: 15px 0;
   }
   
   #game-container {
-    width: 95%;
+    width: 100%;
     max-width: 100%;
-    padding: 15px;
+    padding: 10px;
   }
   
   h1 {
-    font-size: 24px;
-    margin-bottom: 15px;
+    font-size: 22px;
+    margin-bottom: 12px;
   }
   
   #round-info {
-    margin-bottom: 20px;
-    font-size: 14px;
-    gap: 10px;
+    margin-bottom: 15px;
+    font-size: 12px;
+    gap: 8px;
   }
   
   #round-display, #timer-display {
-    padding: 10px 15px;
-    min-width: 120px;
+    padding: 8px 12px;
+    min-width: 80px;
   }
   
   #round-display span:last-child,
   #timer-display span:nth-child(2) {
-    font-size: 20px;
-    margin: 0 5px;
+    font-size: 18px;
+    margin: 0 4px;
+  }
+  
+  #grid-container {
+    gap: 8px;
   }
   
   .grid-cell {
-    font-size: 20px;
-    padding: 15px;
-    min-height: 50px;
+    font-size: 18px;
+    padding: 10px;
+    min-height: 40px;
   }
   
   button {
-    padding: 12px 20px;
+    padding: 10px 20px;
     font-size: 16px;
+    max-width: 90%;
   }
 }
 
