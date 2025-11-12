@@ -1,0 +1,163 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f4f4f4;
+}
+
+#game-container {
+  text-align: center;
+  width: 90%;
+  max-width: 500px;
+  padding: 20px;
+}
+
+h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+#round-info {
+  margin-bottom: 30px;
+  font-size: 16px;
+  display: flex;
+  justify-content: space-around;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+#round-display {
+  background-color: #e3f2fd;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 2px solid #2196F3;
+  font-weight: bold;
+  color: #1976D2;
+  flex: 1;
+  min-width: 140px;
+}
+
+#round-display span:last-child {
+  font-size: 24px;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+#timer-display {
+  background-color: #fff3e0;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 2px solid #FF9800;
+  font-weight: bold;
+  color: #E65100;
+  flex: 1;
+  min-width: 140px;
+}
+
+#timer-display span:nth-child(2) {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0 8px;
+}
+
+/* 휴대폰 반응형 (600px 이하) */
+@media (max-width: 600px) {
+  body {
+    height: auto;
+    padding: 20px 0;
+  }
+  
+  #game-container {
+    width: 95%;
+    max-width: 100%;
+    padding: 15px;
+  }
+  
+  h1 {
+    font-size: 24px;
+    margin-bottom: 15px;
+  }
+  
+  #round-info {
+    margin-bottom: 20px;
+    font-size: 14px;
+    gap: 10px;
+  }
+  
+  #round-display, #timer-display {
+    padding: 10px 15px;
+    min-width: 120px;
+  }
+  
+  #round-display span:last-child,
+  #timer-display span:nth-child(2) {
+    font-size: 20px;
+    margin: 0 5px;
+  }
+  
+  .grid-cell {
+    font-size: 20px;
+    padding: 15px;
+    min-height: 50px;
+  }
+  
+  button {
+    padding: 12px 20px;
+    font-size: 16px;
+  }
+}
+
+#grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2x2 격자 */
+  gap: 10px;
+  margin-bottom: 20px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.grid-cell {
+  background-color: #ddd;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+  padding: 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  min-height: 60px;
+  aspect-ratio: 1 / 1;
+}
+
+.grid-cell.clicked {
+  background-color: #4CAF50;  /* 클릭된 버튼은 초록색 */
+  color: white;
+  font-weight: bold;
+}
+
+button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 12px 30px;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  margin-top: 20px;
+  border-radius: 5px;
+  width: 100%;
+  max-width: 300px;
+}
+
+button:active {
+  background-color: #45a049;
+}
