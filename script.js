@@ -3,7 +3,7 @@ let gridSize = 2;
 let targetSequence = [];
 let userSequence = [];
 let roundTimer;
-let timeLimit = 30;
+let timeLimit = 60;
 
 const gridContainer = document.getElementById('grid-container');
 const roundNumberElement = document.getElementById('round-number');
@@ -21,6 +21,9 @@ function generateGrid() {
   // 숫자 섞기 (랜덤) - 게임판 배치만 랜덤
   numbers = numbers.sort(() => Math.random() - 0.5);
 
+  // 격자 크기에 따라 셀 크기 조정
+  adjustCellSize();
+
   // 그리드 생성
   numbers.forEach(num => {
     const cell = document.createElement('div');
@@ -29,6 +32,37 @@ function generateGrid() {
     cell.dataset.number = num;  // 데이터 속성으로 숫자 저장
     cell.onclick = () => handleCellClick(num);  // 클릭 시 숫자 처리
     gridContainer.appendChild(cell);
+  });
+}
+
+// 격자 크기에 따라 셀 패딩과 폰트 크기 조정
+function adjustCellSize() {
+  let padding = 20;
+  let fontSize = 24;
+  
+  // 라운드(격자 크기)에 따라 조정
+  if (gridSize === 2) {
+    padding = 20;
+    fontSize = 24;
+  } else if (gridSize === 3) {
+    padding = 15;
+    fontSize = 20;
+  } else if (gridSize === 4) {
+    padding = 10;
+    fontSize = 18;
+  } else if (gridSize === 5) {
+    padding = 8;
+    fontSize = 16;
+  } else if (gridSize === 6) {
+    padding = 4;
+    fontSize = 12;
+  }
+  
+  // CSS 변수 또는 인라인 스타일로 설정
+  const cells = document.querySelectorAll('.grid-cell');
+  cells.forEach(cell => {
+    cell.style.padding = padding + 'px';
+    cell.style.fontSize = fontSize + 'px';
   });
 }
 
@@ -127,4 +161,3 @@ function resetGame() {
 
 // 게임 시작 버튼
 startButton.disabled = false;
-
