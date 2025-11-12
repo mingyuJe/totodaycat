@@ -3,7 +3,10 @@ let gridSize = 2;
 let targetSequence = [];
 let userSequence = [];
 let roundTimer;
-let timeLimit = 30;
+
+// 라운드별 제한시간 (1~5라운드)
+const roundTimeLimits = [0, 5, 7, 15, 25, 30]; // 0번 인덱스는 사용 안함
+let timeLimit = 5;
 
 const gridContainer = document.getElementById('grid-container');
 const roundNumberElement = document.getElementById('round-number');
@@ -105,6 +108,8 @@ function nextRound() {
   } else {
     roundNumberElement.textContent = currentRound;
     gridSize = currentRound + 1;  // 2, 3, 4, 5, 6
+    // 라운드별 제한시간 적용
+    timeLimit = roundTimeLimits[currentRound];
     // CSS 그리드 칼럼 수 동적 설정 (정사각형 격자)
     gridContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
     userSequence = [];
@@ -128,6 +133,7 @@ function startGame() {
   currentRound = 1;
   roundNumberElement.textContent = currentRound;
   gridSize = 2;
+  timeLimit = roundTimeLimits[currentRound];
   // CSS 그리드 칼럼 수 동적 설정 (정사각형 격자)
   gridContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
   userSequence = [];
@@ -161,5 +167,3 @@ function resetGame() {
 
 // 게임 시작 버튼
 startButton.disabled = false;
-
-
