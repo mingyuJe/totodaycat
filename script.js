@@ -3,7 +3,7 @@ let gridSize = 2;
 let targetSequence = [];
 let userSequence = [];
 let roundTimer;
-let timeLimit = 60;
+let timeLimit = 35;
 
 const gridContainer = document.getElementById('grid-container');
 const roundNumberElement = document.getElementById('round-number');
@@ -161,3 +161,4 @@ function resetGame() {
 
 // 게임 시작 버튼
 startButton.disabled = false;
+
