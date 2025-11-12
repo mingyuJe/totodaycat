@@ -17,8 +17,9 @@ body {
 #game-container {
   text-align: center;
   width: 90%;
-  max-width: 500px;
+  max-width: 600px;
   padding: 20px;
+  overflow-x: hidden;
 }
 
 h1 {
@@ -74,52 +75,54 @@ h1 {
 @media (max-width: 600px) {
   body {
     min-height: auto;
-    padding: 10px 0;
+    padding: 5px 0;
   }
   
   #game-container {
     width: 100%;
     max-width: 100%;
-    padding: 8px;
+    padding: 5px;
+    overflow-x: hidden;
   }
   
   h1 {
-    font-size: 20px;
-    margin-bottom: 8px;
+    font-size: 18px;
+    margin-bottom: 5px;
   }
   
   #round-info {
-    margin-bottom: 12px;
-    font-size: 11px;
-    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 10px;
+    gap: 3px;
   }
   
   #round-display, #timer-display {
-    padding: 6px 10px;
-    min-width: 70px;
+    padding: 4px 8px;
+    min-width: auto;
+    flex: 1;
   }
   
   #round-display span:last-child,
   #timer-display span:nth-child(2) {
-    font-size: 16px;
-    margin: 0 3px;
+    font-size: 14px;
+    margin: 0 2px;
   }
   
   #grid-container {
-    gap: 3px;
-    margin-bottom: 12px;
+    gap: 2px;
+    margin-bottom: 8px;
   }
   
   .grid-cell {
-    font-size: 12px;
-    padding: 2px;
-    min-height: auto;
+    font-size: 10px;
+    padding: 0px;
+    aspect-ratio: 1 / 1;
   }
   
   button {
     padding: 8px 16px;
     font-size: 14px;
-    max-width: 90%;
+    width: 90%;
   }
 }
 
@@ -129,7 +132,6 @@ h1 {
   gap: 10px;
   margin-bottom: 20px;
   width: 100%;
-  aspect-ratio: 1 / 1;
 }
 
 .grid-cell {
@@ -142,7 +144,6 @@ h1 {
   border-radius: 5px;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  min-height: 60px;
   aspect-ratio: 1 / 1;
 }
 
