@@ -8,6 +8,43 @@ let roundTimer;
 const roundTimeLimits = [0, 5, 7, 15, 25, 30]; // 0번 인덱스는 사용 안함
 let timeLimit = 5;
 
+// ============ localStorage 기회 관리 로직 ============
+const PLAY_COUNT_KEY = 'playCount';
+const INITIAL_PLAYS = 3;
+
+// localStorage에서 현재 기회 수 읽기 (없으면 초기값 3)
+function getPlayCount() {
+  const count = localStorage.getItem(PLAY_COUNT_KEY);
+  return count !== null ? parseInt(count, 10) : INITIAL_PLAYS;
+}
+
+// localStorage에 기회 수 저장
+function setPlayCount(count) {
+  localStorage.setItem(PLAY_COUNT_KEY, Math.max(0, count)); // 음수 방지
+}
+
+// localStorage에서 기회 수 1 감소
+function decrementPlayCount() {
+  const current = getPlayCount();
+  setPlayCount(current - 1);
+}
+
+// localStorage에서 기회 수 1 증가 (공유 보상)
+function addPlayCount() {
+  const current = getPlayCount();
+  setPlayCount(current + 1);
+  showMessage('공유 성공! 기회 +1 획득했습니다 🎉', 2000);
+}
+
+// UI에서 남은 기회 표시 업데이트
+function updatePlayCountDisplay() {
+  const count = getPlayCount();
+  const display = document.getElementById('play-count-display');
+  if (display) {
+    display.textContent = count;
+  }
+}
+
 const gridContainer = document.getElementById('grid-container');
 const roundNumberElement = document.getElementById('round-number');
 const timerElement = document.getElementById('timer');
@@ -162,6 +199,18 @@ function generateSequence(size) {
 
 // 게임 시작 함수
 function startGame() {
+  const playCount = getPlayCount();
+  
+  // 기회가 없으면 게임 시작 차단
+  if (playCount <= 0) {
+    showMessage('기회가 없습니다! 친구에게 공유해서 기회를 받아보세요 📱', 3000);
+    return;
+  }
+  
+  // 기회 1 소비
+  decrementPlayCount();
+  updatePlayCountDisplay();
+  
   currentRound = 1;
   roundNumberElement.textContent = currentRound;
   gridSize = 2;
@@ -189,13 +238,72 @@ function startTimer() {
   }, 1000);
 }
 
+
 // 게임 리셋 함수
 function resetGame() {
   clearInterval(roundTimer);  // 타이머 멈추기
   timerElement.textContent = '0';
   startButton.disabled = false;  // 버튼 활성화
   userSequence = [];  // 클릭한 숫자 배열 초기화
+  updatePlayCountDisplay();  // 기회 수 업데이트
 }
 
 // 게임 시작 버튼
 startButton.disabled = false;
+
+// ============ 페이지 로드 시 초기화 ============
+window.addEventListener('load', function() {
+  updatePlayCountDisplay();  // 페이지 로드 시 기회 수 표시
+  
+  // Kakao SDK 초기화 (당신이 설정할 JavaScript 키를 여기 입력)
+  Kakao.init('a082589492b825fcacc96781ed3824c3'); // 다음에 설정해주세요!
+});
+
+// ============ 카카오톡 공유 함수 ============
+function shareWithKakao() {
+  // Kakao SDK가 로드되지 않았으면 경고
+  if (typeof Kakao === 'undefined') {
+    showMessage('카카오톡 공유 기능을 사용할 수 없습니다.', 2000);
+    return;
+  }
+  
+  // SDK가 초기화되지 않았으면 경고
+  if (!Kakao.isInitialized()) {
+    showMessage('카카오톡 공유 설정 중입니다. 다시 시도해주세요.', 2000);
+    return;
+  }
+  
+  // 현재 페이지 URL
+  const currentUrl = window.location.href;
+  
+  // 카카오톡 링크 공유 API
+  Kakao.Link.sendDefault({
+    objectType: 'feed',
+    content: {
+      title: '🎮 기획냐옹 - 숫자 찾기 게임',
+      description: '숫자를 순서대로 찾는 게임! 너도 도전해봐! 🔢',
+      imageUrl: currentUrl + 'image.png', // (선택) 썸네일 이미지 URL
+      link: {
+        mobileWebUrl: currentUrl,
+        webUrl: currentUrl,
+      },
+    },
+    buttons: [
+      {
+        title: '게임하기',
+        link: {
+          mobileWebUrl: currentUrl,
+          webUrl: currentUrl,
+        },
+      },
+    ],
+    success: function(response) {
+      console.log('카카오톡 공유 성공:', response);
+      addPlayCount();  // 공유 성공 시 기회 +1
+    },
+    fail: function(error) {
+      console.log('카카오톡 공유 실패:', error);
+      showMessage('카카오톡 공유에 실패했습니다.', 2000);
+    },
+  });
+}
