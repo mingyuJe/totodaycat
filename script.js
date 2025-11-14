@@ -12,6 +12,17 @@ const gridContainer = document.getElementById('grid-container');
 const roundNumberElement = document.getElementById('round-number');
 const timerElement = document.getElementById('timer');
 const startButton = document.getElementById('start-btn');
+const messageBox = document.getElementById('message-box');
+
+// 메시지 표시 함수
+function showMessage(message, duration = 2000) {
+  messageBox.textContent = message;
+  messageBox.classList.add('show');
+  
+  setTimeout(() => {
+    messageBox.classList.remove('show');
+  }, duration);
+}
 
 // 숫자 그리드 생성
 function generateGrid() {
@@ -93,7 +104,7 @@ function handleCellClick(num) {
   } else {
     // 잘못된 숫자를 클릭했으면
     console.log("잘못된 클릭");
-    alert('틀렸습니다! 다시 시도해 주세요.');
+    showMessage('틀렸습니다! 다시 시도해 주세요.');
     // 진행도를 초기화하지 않고, 그냥 계속 진행
   }
 }
@@ -103,8 +114,8 @@ function nextRound() {
   clearInterval(roundTimer);  // 기존 타이머 정지
   currentRound++;
   if (currentRound > 5) {
-    alert('게임 종료! 축하합니다!');
-    resetGame();
+    showMessage('게임 종료! 축하합니다!', 3000);
+    setTimeout(resetGame, 3000);
   } else {
     roundNumberElement.textContent = currentRound;
     gridSize = currentRound + 1;  // 2, 3, 4, 5, 6
@@ -151,8 +162,8 @@ function startTimer() {
     timerElement.textContent = timeLeft;
     if (timeLeft <= 0) {
       clearInterval(roundTimer);
-      alert('시간 초과! 게임을 다시 시작합니다.');
-      resetGame();
+      showMessage('시간 초과! 게임을 다시 시작합니다.', 3000);
+      setTimeout(resetGame, 3000);
     }
   }, 1000);
 }
