@@ -80,6 +80,23 @@ h1 {
   margin: 0 8px;
 }
 
+#play-count-display-container {
+  background-color: #f3e5f5;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: 2px solid #9C27B0;
+  font-weight: bold;
+  color: #6A1B9A;
+  flex: 1;
+  min-width: 100px;
+}
+
+#play-count-display-container span:last-child {
+  font-size: 24px;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
 /* 휴대폰 반응형 (600px 이하) */
 @media (max-width: 600px) {
   body {
@@ -104,14 +121,15 @@ h1 {
     gap: 3px;
   }
   
-  #round-display, #timer-display {
+  #round-display, #timer-display, #play-count-display-container {
     padding: 4px 8px;
     min-width: auto;
     flex: 1;
   }
   
   #round-display span:last-child,
-  #timer-display span:nth-child(2) {
+  #timer-display span:nth-child(2),
+  #play-count-display-container span:last-child {
     font-size: 14px;
     margin: 0 2px;
   }
@@ -121,10 +139,14 @@ h1 {
     margin-bottom: 8px;
   }
   
+  #button-group {
+    max-width: 100%;
+  }
+  
   button {
     padding: 8px 16px;
     font-size: 14px;
-    width: 90%;
+    width: 100%;
   }
   
   .footer {
@@ -178,6 +200,38 @@ button {
 
 button:active {
   background-color: #45a049;
+}
+
+#button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+  margin-top: 20px;
+}
+
+#button-group button {
+  margin-top: 0;
+}
+
+#start-btn {
+  background-color: #4CAF50;
+}
+
+#start-btn:active {
+  background-color: #45a049;
+}
+
+#share-btn {
+  background-color: #FFE53B;
+  color: #333;
+  font-weight: bold;
+}
+
+#share-btn:active {
+  background-color: #FDD835;
 }
 
 /* 메시지 박스 */
