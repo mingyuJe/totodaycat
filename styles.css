@@ -280,12 +280,16 @@ button:active {
   border: 1px solid #ddd;
 }
 
-.rankings-table tbody tr:nth-child(odd) {
+.rankings-table tbody tr:nth-child(even) {
   background-color: #f9f9f9;
 }
 
+.rankings-table tbody tr:nth-child(odd) {
+  background-color: white;
+}
+
 .rankings-table tbody tr:hover {
-  background-color: #f0f0f0;
+  background-color: #e3f2fd;
 }
 
 .rankings-table td:first-child {
