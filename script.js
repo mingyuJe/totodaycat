@@ -10,7 +10,7 @@ const PLAY_COUNT_KEY = 'playCount';
 const RANKINGS_KEY = 'rankings';
 const INITIAL_PLAYS = 3;
 const MAX_RANKINGS = 10;
-const SHEETDB_API_URL = 'https://sheetdb.io/api/v1/9vub9r8fyc8tl';
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz8QjaV_JCJBUGGXm5Fp9yhnsx1ieixv4hRPB_GY4Nn5IcUbcnecUcPgEQL-N9eJ5h8aQ/exec';
 
 const gridContainer = document.getElementById('grid-container');
 const roundNumberElement = document.getElementById('round-number');
@@ -85,28 +85,28 @@ function formatTime(seconds) {
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
-// 글로벌 랭킹 저장 (Sheetdb)
+// 글로벌 랭킹 저장 (Google Apps Script)
 async function saveToGlobalRankings(name, timeInSeconds) {
   try {
-    const response = await fetch(SHEETDB_API_URL, {
+    const data = {
+      name: name,
+      time: timeInSeconds,
+      formattedTime: formatTime(timeInSeconds),
+      date: new Date().toLocaleString('ko-KR')
+    };
+    
+    console.log('Google Sheets 저장 시도:', data);
+    
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
+      mode: 'no-cors',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        data: [{
-          name: name,
-          time: timeInSeconds,
-          formattedTime: formatTime(timeInSeconds),
-          date: new Date().toLocaleString('ko-KR')
-        }]
-      })
+      body: JSON.stringify(data)
     });
     
-    if (!response.ok) {
-      throw new Error('저장 실패');
-    }
-    
+    console.log('저장 완료');
     return true;
   } catch (error) {
     console.error('글로벌 랭킹 저장 실패:', error);
@@ -114,18 +114,19 @@ async function saveToGlobalRankings(name, timeInSeconds) {
   }
 }
 
-// 글로벌 랭킹 불러오기 (Sheetdb)
+// 글로벌 랭킹 불러오기 (Google Apps Script)
 async function getGlobalRankings() {
   try {
-    const response = await fetch(SHEETDB_API_URL);
+    const response = await fetch(GOOGLE_SCRIPT_URL);
     if (!response.ok) {
       throw new Error('불러오기 실패');
     }
     
     const data = await response.json();
+    console.log('불러온 데이터:', data);
     
-    // 시간 기준 오름차순 정렬
-    return data.sort((a, b) => parseInt(a.time) - parseInt(b.time));
+    // 이미 정렬되어 있지만 한 번 더 확인
+    return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error('글로벌 랭킹 불러오기 실패:', error);
     return [];
