@@ -90,7 +90,7 @@ async function saveToGlobalRankings(name, timeInSeconds) {
   try {
     const data = {
       name: name,
-      time: timeInSeconds,
+      time: `'${timeInSeconds}`,  // 앞에 '를 붙여서 텍스트로 저장
       formattedTime: formatTime(timeInSeconds),
       date: new Date().toLocaleString('ko-KR')
     };
