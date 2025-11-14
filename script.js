@@ -13,6 +13,27 @@ const roundNumberElement = document.getElementById('round-number');
 const timerElement = document.getElementById('timer');
 const startButton = document.getElementById('start-btn');
 const messageBox = document.getElementById('message-box');
+const rulesModal = document.getElementById('rules-modal');
+
+// 룰 팝업 닫기 함수
+function closeRulesModal() {
+  rulesModal.classList.add('hidden');
+}
+
+// 팝업의 X 버튼 클릭 시
+document.querySelector('.close').addEventListener('click', closeRulesModal);
+
+// 팝업 외부 클릭 시 닫기
+window.addEventListener('click', function(event) {
+  if (event.target === rulesModal) {
+    closeRulesModal();
+  }
+});
+
+// 페이지 로드 시 팝업 표시
+window.addEventListener('load', function() {
+  rulesModal.classList.remove('hidden');
+});
 
 // 메시지 표시 함수
 function showMessage(message, duration = 2000) {
