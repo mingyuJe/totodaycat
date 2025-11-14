@@ -234,6 +234,65 @@ button:active {
   background-color: #FDD835;
 }
 
+#reset-btn {
+  background-color: #FF6B6B;
+  color: white;
+  font-size: 16px;
+}
+
+#reset-btn:active {
+  background-color: #E55039;
+}
+
+#rankings-btn {
+  background-color: #FFB6C1;
+  color: #333;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+#rankings-btn:active {
+  background-color: #FFC0CB;
+}
+
+/* 랭킹 페이지 스타일 */
+.rankings-container {
+  padding: 30px;
+  text-align: center;
+}
+
+.rankings-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 14px;
+}
+
+.rankings-table thead {
+  background-color: #667eea;
+  color: white;
+}
+
+.rankings-table th,
+.rankings-table td {
+  padding: 12px;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+
+.rankings-table tbody tr:nth-child(odd) {
+  background-color: #f9f9f9;
+}
+
+.rankings-table tbody tr:hover {
+  background-color: #f0f0f0;
+}
+
+.rankings-table td:first-child {
+  font-weight: bold;
+  color: #667eea;
+}
+
 /* 메시지 박스 */
 .message-box {
   margin-top: 15px;
