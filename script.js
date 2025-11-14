@@ -3,47 +3,14 @@ let gridSize = 2;
 let targetSequence = [];
 let userSequence = [];
 let roundTimer;
+let gameStartTime = null;
+let gameActive = false;
 
-// 라운드별 제한시간 (1~5라운드)
-const roundTimeLimits = [0, 5, 7, 15, 25, 30]; // 0번 인덱스는 사용 안함
-let timeLimit = 5;
-
-// ============ localStorage 기회 관리 로직 ============
 const PLAY_COUNT_KEY = 'playCount';
+const RANKINGS_KEY = 'rankings';
 const INITIAL_PLAYS = 3;
-
-// localStorage에서 현재 기회 수 읽기 (없으면 초기값 3)
-function getPlayCount() {
-  const count = localStorage.getItem(PLAY_COUNT_KEY);
-  return count !== null ? parseInt(count, 10) : INITIAL_PLAYS;
-}
-
-// localStorage에 기회 수 저장
-function setPlayCount(count) {
-  localStorage.setItem(PLAY_COUNT_KEY, Math.max(0, count)); // 음수 방지
-}
-
-// localStorage에서 기회 수 1 감소
-function decrementPlayCount() {
-  const current = getPlayCount();
-  setPlayCount(current - 1);
-}
-
-// localStorage에서 기회 수 1 증가 (공유 보상)
-function addPlayCount() {
-  const current = getPlayCount();
-  setPlayCount(current + 1);
-  showMessage('공유 성공! 기회 +1 획득했습니다 🎉', 2000);
-}
-
-// UI에서 남은 기회 표시 업데이트
-function updatePlayCountDisplay() {
-  const count = getPlayCount();
-  const display = document.getElementById('play-count-display');
-  if (display) {
-    display.textContent = count;
-  }
-}
+const MAX_RANKINGS = 10;
+const SHEETDB_API_URL = 'https://sheetdb.io/api/v1/9vub9r8fyc8tl';
 
 const gridContainer = document.getElementById('grid-container');
 const roundNumberElement = document.getElementById('round-number');
@@ -52,27 +19,251 @@ const startButton = document.getElementById('start-btn');
 const messageBox = document.getElementById('message-box');
 const rulesModal = document.getElementById('rules-modal');
 
-// 룰 팝업 닫기 함수
+// ============ 기회 관리 ============
+function getPlayCount() {
+  const count = localStorage.getItem(PLAY_COUNT_KEY);
+  return count !== null ? parseInt(count, 10) : INITIAL_PLAYS;
+}
+
+function setPlayCount(count) {
+  localStorage.setItem(PLAY_COUNT_KEY, Math.max(0, count));
+}
+
+function decrementPlayCount() {
+  const current = getPlayCount();
+  setPlayCount(current - 1);
+}
+
+function addPlayCount() {
+  const current = getPlayCount();
+  setPlayCount(current + 1);
+  showMessage('공유 성공! 기회 +1 획득했습니다 🎉', 2000);
+}
+
+function updatePlayCountDisplay() {
+  const count = getPlayCount();
+  const display = document.getElementById('play-count-display');
+  if (display) {
+    display.textContent = count;
+  }
+}
+
+function resetData() {
+  if (confirm('정말로 기회를 초기화하시겠습니까?\n초기화 후 기회는 3회로 돌아갑니다.')) {
+    setPlayCount(INITIAL_PLAYS);
+    updatePlayCountDisplay();
+    showMessage('✅ 데이터가 초기화되었습니다! 기회: 3회', 2000);
+    resetGame();
+  }
+}
+
+// ============ 랭킹 시스템 ============
+function getRankings() {
+  const rankingsJson = localStorage.getItem(RANKINGS_KEY);
+  return rankingsJson ? JSON.parse(rankingsJson) : [];
+}
+
+function saveRankings(rankings) {
+  localStorage.setItem(RANKINGS_KEY, JSON.stringify(rankings));
+}
+
+function addRanking(name, timeInSeconds) {
+  const rankings = getRankings();
+  rankings.push({
+    name: name,
+    time: timeInSeconds,
+    timestamp: new Date().toLocaleString('ko-KR')
+  });
+  rankings.sort((a, b) => a.time - b.time);
+  const topRankings = rankings.slice(0, MAX_RANKINGS);
+  saveRankings(topRankings);
+}
+
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// 글로벌 랭킹 저장 (Sheetdb)
+async function saveToGlobalRankings(name, timeInSeconds) {
+  try {
+    const response = await fetch(SHEETDB_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        data: [{
+          name: name,
+          time: timeInSeconds,
+          formattedTime: formatTime(timeInSeconds),
+          date: new Date().toLocaleString('ko-KR')
+        }]
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error('저장 실패');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('글로벌 랭킹 저장 실패:', error);
+    return false;
+  }
+}
+
+// 글로벌 랭킹 불러오기 (Sheetdb)
+async function getGlobalRankings() {
+  try {
+    const response = await fetch(SHEETDB_API_URL);
+    if (!response.ok) {
+      throw new Error('불러오기 실패');
+    }
+    
+    const data = await response.json();
+    
+    // 시간 기준 오름차순 정렬
+    return data.sort((a, b) => parseInt(a.time) - parseInt(b.time));
+  } catch (error) {
+    console.error('글로벌 랭킹 불러오기 실패:', error);
+    return [];
+  }
+}
+
+function showCompletionModal(completionTime) {
+  const modal = document.createElement('div');
+  modal.id = 'completion-modal';
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <h2>🎉 게임 완료!</h2>
+      <p style="font-size: 18px; margin: 20px 0;">
+        완료 시간: <strong>${formatTime(completionTime)}</strong>
+      </p>
+      <input 
+        type="text" 
+        id="player-name" 
+        placeholder="이름을 입력하세요" 
+        maxlength="10"
+        style="width: 100%; padding: 10px; font-size: 16px; margin: 15px 0; border: 2px solid #ddd; border-radius: 5px; box-sizing: border-box;"
+      />
+      <button onclick="saveAndShowRankings()" style="width: 100%; padding: 12px; font-size: 16px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 10px;">저장 및 랭킹 보기</button>
+      <button onclick="closeCompletionModal()" style="width: 100%; padding: 12px; font-size: 16px; background: #999; color: white; border: none; border-radius: 5px; cursor: pointer;">닫기</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function closeCompletionModal() {
+  const modal = document.getElementById('completion-modal');
+  if (modal) modal.remove();
+}
+
+async function saveAndShowRankings() {
+  const nameInput = document.getElementById('player-name');
+  const name = nameInput.value.trim();
+  
+  if (name === '') {
+    alert('이름을 입력해주세요!');
+    return;
+  }
+  
+  const completionTime = Math.floor((Date.now() - gameStartTime) / 1000);
+  
+  // 로컬 저장
+  addRanking(name, completionTime);
+  
+  // 글로벌 저장 (Sheetdb)
+  const saveBtn = document.querySelector('#completion-modal button:first-of-type');
+  saveBtn.textContent = '저장 중...';
+  saveBtn.disabled = true;
+  
+  const success = await saveToGlobalRankings(name, completionTime);
+  
+  if (success) {
+    showMessage('✅ 글로벌 랭킹에 저장되었습니다!', 2000);
+  } else {
+    showMessage('⚠️ 글로벌 저장 실패 (로컬에는 저장됨)', 2000);
+  }
+  
+  closeCompletionModal();
+  showRankingsPage();
+}
+
+async function showRankingsPage() {
+  // 로딩 표시
+  const loadingHtml = '<div class="rankings-container"><h2>🏆 글로벌 랭킹</h2><p>불러오는 중...</p></div>';
+  const overlay = document.createElement('div');
+  overlay.id = 'rankings-overlay';
+  overlay.className = 'modal';
+  overlay.innerHTML = loadingHtml;
+  document.body.appendChild(overlay);
+  
+  // 글로벌 랭킹 불러오기
+  const rankings = await getGlobalRankings();
+  
+  let rankingsHtml = '<div class="rankings-container"><h2>🏆 글로벌 랭킹</h2>';
+  
+  if (rankings.length === 0) {
+    rankingsHtml += '<p>아직 완료 기록이 없습니다.</p>';
+  } else {
+    rankingsHtml += '<table class="rankings-table"><thead><tr><th>순위</th><th>이름</th><th>시간</th><th>날짜</th></tr></thead><tbody>';
+    rankings.slice(0, 50).forEach((rank, index) => {
+      rankingsHtml += `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${rank.name}</td>
+          <td>${rank.formattedTime || formatTime(parseInt(rank.time))}</td>
+          <td style="font-size: 12px;">${rank.date}</td>
+        </tr>
+      `;
+    });
+    rankingsHtml += '</tbody></table>';
+  }
+  
+  rankingsHtml += '<button onclick="hideRankingsPage()" style="width: 100%; padding: 12px; font-size: 16px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px;">돌아가기</button>';
+  rankingsHtml += '</div>';
+  
+  overlay.innerHTML = rankingsHtml;
+}
+
+function hideRankingsPage() {
+  const overlay = document.getElementById('rankings-overlay');
+  if (overlay) overlay.remove();
+  resetGame();
+}
+
+function showRankingsButton() {
+  const btn = document.createElement('button');
+  btn.id = 'rankings-btn';
+  btn.textContent = '🏆 랭킹';
+  btn.onclick = showRankingsPage;
+  btn.style.cssText = 'background-color: #FFB6C1; color: #333; font-weight: bold;';
+  document.getElementById('button-group').appendChild(btn);
+}
+
+// ============ UI 초기화 ============
 function closeRulesModal() {
   rulesModal.classList.add('hidden');
 }
 
-// 팝업의 X 버튼 클릭 시
 document.querySelector('.close').addEventListener('click', closeRulesModal);
 
-// 팝업 외부 클릭 시 닫기
 window.addEventListener('click', function(event) {
   if (event.target === rulesModal) {
     closeRulesModal();
   }
 });
 
-// 페이지 로드 시 팝업 표시
 window.addEventListener('load', function() {
   rulesModal.classList.remove('hidden');
+  updatePlayCountDisplay();
+  showRankingsButton();
+  Kakao.init('a082589492b825fcacc96781ed3824c3');
 });
 
-// 메시지 표시 함수
 function showMessage(message, duration = 2000) {
   messageBox.textContent = message;
   messageBox.classList.add('show');
@@ -82,37 +273,31 @@ function showMessage(message, duration = 2000) {
   }, duration);
 }
 
-// 숫자 그리드 생성
+// ============ 게임 로직 ============
 function generateGrid() {
-  gridContainer.innerHTML = '';  // 기존 그리드 비우기
+  gridContainer.innerHTML = '';
   let numbers = [];
   for (let i = 1; i <= gridSize * gridSize; i++) {
-    numbers.push(i);  // 1부터 gridSize*gridSize까지의 숫자 생성
+    numbers.push(i);
   }
 
-  // 숫자 섞기 (랜덤) - 게임판 배치만 랜덤
   numbers = numbers.sort(() => Math.random() - 0.5);
-
-  // 격자 크기에 따라 셀 크기 조정
   adjustCellSize();
 
-  // 그리드 생성
   numbers.forEach(num => {
     const cell = document.createElement('div');
     cell.classList.add('grid-cell');
     cell.textContent = num;
-    cell.dataset.number = num;  // 데이터 속성으로 숫자 저장
-    cell.onclick = () => handleCellClick(num);  // 클릭 시 숫자 처리
+    cell.dataset.number = num;
+    cell.onclick = () => handleCellClick(num);
     gridContainer.appendChild(cell);
   });
 }
 
-// 격자 크기에 따라 셀 패딩과 폰트 크기 조정
 function adjustCellSize() {
   let padding = 20;
   let fontSize = 24;
   
-  // 라운드(격자 크기)에 따라 조정
   if (gridSize === 2) {
     padding = 20;
     fontSize = 24;
@@ -130,7 +315,6 @@ function adjustCellSize() {
     fontSize = 12;
   }
   
-  // CSS 변수 또는 인라인 스타일로 설정
   const cells = document.querySelectorAll('.grid-cell');
   cells.forEach(cell => {
     cell.style.padding = padding + 'px';
@@ -138,14 +322,12 @@ function adjustCellSize() {
   });
 }
 
-// 사용자가 숫자 클릭 시 처리
 function handleCellClick(num) {
-  console.log("클릭된 숫자:", num);
-  // 사용자가 클릭한 숫자가 현재 맞춰야 할 숫자와 일치하는지 확인
+  if (!gameActive) return;
+  
   if (num === targetSequence[userSequence.length]) {
-    userSequence.push(num);  // 맞으면 userSequence에 추가
+    userSequence.push(num);
     
-    // 클릭한 셀의 색깔 변경
     const cells = document.querySelectorAll('.grid-cell');
     cells.forEach(cell => {
       if (parseInt(cell.textContent) === num) {
@@ -153,136 +335,111 @@ function handleCellClick(num) {
       }
     });
     
-    console.log("현재 userSequence:", userSequence);  // userSequence 배열을 확인하기 위한 로그
     if (userSequence.length === targetSequence.length) {
-      // 모든 숫자를 맞췄으면
-      console.log("userSequence가 targetSequence와 일치!");
-      nextRound();  // 다음 라운드로
+      nextRound();
     }
   } else {
-    // 잘못된 숫자를 클릭했으면
-    console.log("잘못된 클릭");
     showMessage('틀렸습니다! 다시 시도해 주세요.');
-    // 진행도를 초기화하지 않고, 그냥 계속 진행
   }
 }
 
-// 다음 라운드로 넘어가는 함수
 function nextRound() {
-  clearInterval(roundTimer);  // 기존 타이머 정지
+  clearInterval(roundTimer);
   currentRound++;
+  
   if (currentRound > 5) {
-    showMessage('게임 종료! 축하합니다!', 3000);
-    setTimeout(resetGame, 3000);
+    gameActive = false;
+    const completionTime = Math.floor((Date.now() - gameStartTime) / 1000);
+    showMessage('게임 완료! 축하합니다! 🎉', 2000);
+    setTimeout(() => {
+      showCompletionModal(completionTime);
+    }, 2000);
   } else {
     roundNumberElement.textContent = currentRound;
-    gridSize = currentRound + 1;  // 2, 3, 4, 5, 6
-    // 라운드별 제한시간 적용
-    timeLimit = roundTimeLimits[currentRound];
-    // CSS 그리드 칼럼 수 동적 설정 (정사각형 격자)
+    gridSize = currentRound + 1;
     gridContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
     userSequence = [];
-    targetSequence = generateSequence(gridSize);  // 새 라운드에 맞는 숫자 시퀀스 생성
-    generateGrid();  // 새 그리드 생성
-    startTimer();  // 새 타이머 시작
+    targetSequence = generateSequence(gridSize);
+    generateGrid();
+    startTimer();
   }
 }
 
-// 정답 숫자 시퀀스 생성 (항상 1, 2, 3, 4... 순서)
 function generateSequence(size) {
   const sequence = [];
   for (let i = 1; i <= size * size; i++) {
     sequence.push(i);
   }
-  return sequence;  // 정답은 항상 1, 2, 3, 4... 순서
+  return sequence;
 }
 
-// 게임 시작 함수
 function startGame() {
   const playCount = getPlayCount();
   
-  // 기회가 없으면 게임 시작 차단
   if (playCount <= 0) {
     showMessage('기회가 없습니다! 친구에게 공유해서 기회를 받아보세요 📱', 3000);
     return;
   }
   
-  // 기회 1 소비
   decrementPlayCount();
   updatePlayCountDisplay();
+  
+  gameStartTime = Date.now();
+  gameActive = true;
   
   currentRound = 1;
   roundNumberElement.textContent = currentRound;
   gridSize = 2;
-  timeLimit = roundTimeLimits[currentRound];
-  // CSS 그리드 칼럼 수 동적 설정 (정사각형 격자)
   gridContainer.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
   userSequence = [];
-  targetSequence = generateSequence(gridSize);  // 2x2 그리드에 맞는 숫자 시퀀스
-  generateGrid();  // 그리드 생성
-  startTimer();  // 타이머 시작
+  targetSequence = generateSequence(gridSize);
+  generateGrid();
+  startTimer();
 }
 
-// 타이머 시작 함수
 function startTimer() {
-  let timeLeft = timeLimit;
-  timerElement.textContent = timeLeft;
+  let elapsedTime = 0;
+  timerElement.textContent = formatTime(elapsedTime);
+  
   roundTimer = setInterval(() => {
-    timeLeft--;
-    timerElement.textContent = timeLeft;
-    if (timeLeft <= 0) {
-      clearInterval(roundTimer);
-      showMessage('시간 초과! 게임을 다시 시작합니다.', 3000);
-      setTimeout(resetGame, 3000);
-    }
+    elapsedTime++;
+    timerElement.textContent = formatTime(elapsedTime);
   }, 1000);
 }
 
-
-// 게임 리셋 함수
 function resetGame() {
-  clearInterval(roundTimer);  // 타이머 멈추기
-  timerElement.textContent = '0';
-  startButton.disabled = false;  // 버튼 활성화
-  userSequence = [];  // 클릭한 숫자 배열 초기화
-  updatePlayCountDisplay();  // 기회 수 업데이트
+  clearInterval(roundTimer);
+  gameActive = false;
+  gameStartTime = null;
+  timerElement.textContent = '00:00';
+  startButton.disabled = false;
+  userSequence = [];
+  currentRound = 1;
+  updatePlayCountDisplay();
 }
 
-// 게임 시작 버튼
 startButton.disabled = false;
 
-// ============ 페이지 로드 시 초기화 ============
-window.addEventListener('load', function() {
-  updatePlayCountDisplay();  // 페이지 로드 시 기회 수 표시
-  
-  // Kakao SDK 초기화 (당신이 설정할 JavaScript 키를 여기 입력)
-  Kakao.init('a082589492b825fcacc96781ed3824c3'); // 다음에 설정해주세요!
-});
-
-// ============ 카카오톡 공유 함수 ============
+// ============ 카카오톡 공유 ============
 function shareWithKakao() {
-  // Kakao SDK가 로드되지 않았으면 경고
   if (typeof Kakao === 'undefined') {
     showMessage('카카오톡 공유 기능을 사용할 수 없습니다.', 2000);
     return;
   }
   
-  // SDK가 초기화되지 않았으면 경고
   if (!Kakao.isInitialized()) {
     showMessage('카카오톡 공유 설정 중입니다. 다시 시도해주세요.', 2000);
     return;
   }
   
-  // 현재 페이지 URL
   const currentUrl = window.location.href;
   
-  // 카카오톡 링크 공유 API
   Kakao.Link.sendDefault({
     objectType: 'feed',
     content: {
       title: '🎮 기획냐옹 - 숫자 찾기 게임',
       description: '숫자를 순서대로 찾는 게임! 너도 도전해봐! 🔢',
-      imageUrl: currentUrl + 'image.png', // (선택) 썸네일 이미지 URL
+      imageUrl: currentUrl + 'image.png',
       link: {
         mobileWebUrl: currentUrl,
         webUrl: currentUrl,
@@ -299,7 +456,7 @@ function shareWithKakao() {
     ],
     success: function(response) {
       console.log('카카오톡 공유 성공:', response);
-      addPlayCount();  // 공유 성공 시 기회 +1
+      addPlayCount();
     },
     fail: function(error) {
       console.log('카카오톡 공유 실패:', error);
