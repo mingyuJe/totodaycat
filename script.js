@@ -206,11 +206,32 @@ async function showRankingsPage() {
   // 글로벌 랭킹 불러오기
   const rankings = await getGlobalRankings();
   
+  // 모바일 여부 확인
+  const isMobile = window.innerWidth <= 600;
+  
   let rankingsHtml = '<div class="rankings-container"><h2>🏆 글로벌 랭킹</h2>';
   
   if (rankings.length === 0) {
     rankingsHtml += '<p>아직 완료 기록이 없습니다.</p>';
+  } else if (isMobile) {
+    // 모바일: 카드 형식
+    rankingsHtml += '<div class="rankings-card-list">';
+    rankings.slice(0, 50).forEach((rank, index) => {
+      const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
+      rankingsHtml += `
+        <div class="ranking-card">
+          <div class="ranking-rank ${rankClass}">${index + 1}</div>
+          <div class="ranking-info">
+            <div class="ranking-name">${rank.name}</div>
+            <div class="ranking-date">${rank.date}</div>
+          </div>
+          <div class="ranking-time">${rank.formattedTime || formatTime(parseInt(rank.time))}</div>
+        </div>
+      `;
+    });
+    rankingsHtml += '</div>';
   } else {
+    // PC: 테이블 형식
     rankingsHtml += '<table class="rankings-table"><thead><tr><th>순위</th><th>이름</th><th>시간</th><th>날짜</th></tr></thead><tbody>';
     rankings.slice(0, 50).forEach((rank, index) => {
       rankingsHtml += `
