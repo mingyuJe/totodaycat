@@ -5,6 +5,7 @@ let userSequence = [];
 let roundTimer;
 let gameStartTime = null;
 let gameActive = false;
+let globalCompletionTime = 0;
 
 const PLAY_COUNT_KEY = 'playCount';
 const RANKINGS_KEY = 'rankings';
@@ -171,7 +172,7 @@ async function saveAndShowRankings() {
     return;
   }
   
-  const completionTime = Math.floor((Date.now() - gameStartTime) / 1000);
+  const completionTime = globalCompletionTime;
   
   // 로컬 저장
   addRanking(name, completionTime);
@@ -350,10 +351,10 @@ function nextRound() {
   
   if (currentRound > 5) {
     gameActive = false;
-    const completionTime = Math.floor((Date.now() - gameStartTime) / 1000);
+    globalCompletionTime = Math.floor((Date.now() - gameStartTime) / 1000);
     showMessage('게임 완료! 축하합니다! 🎉', 2000);
     setTimeout(() => {
-      showCompletionModal(completionTime);
+      showCompletionModal(globalCompletionTime);
     }, 2000);
   } else {
     roundNumberElement.textContent = currentRound;
