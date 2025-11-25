@@ -234,23 +234,6 @@ button:active {
   background-color: #FDD835;
 }
 
-#reset-btn {
-  background-color: #FF6B6B;
-  color: white;
-  font-size: 16px;
-}
-
-#reset-btn:active {
-  background-color: #E55039;
-}
-
-#rankings-btn {
-  background-color: #FFB6C1;
-  color: #333;
-  font-weight: bold;
-  font-size: 16px;
-}
-
 #rankings-btn:active {
   background-color: #FFC0CB;
 }
