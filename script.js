@@ -7,11 +7,19 @@ let gameStartTime = null;
 let gameActive = false;
 let globalCompletionTime = 0;
 
+// ============ 캐싱 및 성능 최적화 변수 ============
+let rankingsCache = null;
+let rankingsCacheTime = 0;
+let localRankingsCache = null;
+let playCountCache = null;
+
 const PLAY_COUNT_KEY = 'playCount';
 const RANKINGS_KEY = 'rankings';
+const SHARE_DONE_KEY = 'shareCompleted';
 const INITIAL_PLAYS = 3;
 const MAX_RANKINGS = 10;
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz8QjaV_JCJBUGGXm5Fp9yhnsx1ieixv4hRPB_GY4Nn5IcUbcnecUcPgEQL-N9eJ5h8aQ/exec';
+const CACHE_DURATION = 30000; // 30초
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzD_f3flj1126mc7-fZ6bTTjgGXfgAT6P31r3Tb3Th934Ap3hUVEHkeQFsKseJ7ToiD/exec';
 
 const gridContainer = document.getElementById('grid-container');
 const roundNumberElement = document.getElementById('round-number');
@@ -22,12 +30,16 @@ const rulesModal = document.getElementById('rules-modal');
 
 // ============ 기회 관리 ============
 function getPlayCount() {
-  const count = localStorage.getItem(PLAY_COUNT_KEY);
-  return count !== null ? parseInt(count, 10) : INITIAL_PLAYS;
+  if (playCountCache === null) {
+    const count = localStorage.getItem(PLAY_COUNT_KEY);
+    playCountCache = count !== null ? parseInt(count, 10) : INITIAL_PLAYS;
+  }
+  return playCountCache;
 }
 
 function setPlayCount(count) {
-  localStorage.setItem(PLAY_COUNT_KEY, Math.max(0, count));
+  playCountCache = Math.max(0, count);
+  localStorage.setItem(PLAY_COUNT_KEY, playCountCache);
 }
 
 function decrementPlayCount() {
@@ -41,6 +53,14 @@ function addPlayCount() {
   showMessage('공유 성공! 기회 +1 획득했습니다 🎉', 2000);
 }
 
+function hasShared() {
+  return localStorage.getItem(SHARE_DONE_KEY) === 'true';
+}
+
+function markShared() {
+  localStorage.setItem(SHARE_DONE_KEY, 'true');
+}
+
 function updatePlayCountDisplay() {
   const count = getPlayCount();
   const display = document.getElementById('play-count-display');
@@ -49,32 +69,41 @@ function updatePlayCountDisplay() {
   }
 }
 
-function resetData() {
-  if (confirm('정말로 기회를 초기화하시겠습니까?\n초기화 후 기회는 3회로 돌아갑니다.')) {
-    setPlayCount(INITIAL_PLAYS);
-    updatePlayCountDisplay();
-    showMessage('✅ 데이터가 초기화되었습니다! 기회: 3회', 2000);
-    resetGame();
-  }
-}
-
 // ============ 랭킹 시스템 ============
 function getRankings() {
-  const rankingsJson = localStorage.getItem(RANKINGS_KEY);
-  return rankingsJson ? JSON.parse(rankingsJson) : [];
+  if (!localRankingsCache) {
+    const rankingsJson = localStorage.getItem(RANKINGS_KEY);
+    localRankingsCache = rankingsJson ? JSON.parse(rankingsJson) : [];
+  }
+  return localRankingsCache;
 }
 
 function saveRankings(rankings) {
+  localRankingsCache = rankings;
   localStorage.setItem(RANKINGS_KEY, JSON.stringify(rankings));
 }
 
 function addRanking(name, timeInSeconds) {
   const rankings = getRankings();
-  rankings.push({
-    name: name,
-    time: timeInSeconds,
-    timestamp: new Date().toLocaleString('ko-KR')
-  });
+  
+  // 같은 이름의 기존 기록 찾기
+  const existingIndex = rankings.findIndex(r => r.name === name);
+  
+  if (existingIndex !== -1) {
+    // 기존 기록이 있으면 더 좋은 시간만 유지
+    if (timeInSeconds < rankings[existingIndex].time) {
+      rankings[existingIndex].time = timeInSeconds;
+      rankings[existingIndex].timestamp = new Date().toLocaleString('ko-KR');
+    }
+  } else {
+    // 새로운 기록 추가
+    rankings.push({
+      name: name,
+      time: timeInSeconds,
+      timestamp: new Date().toLocaleString('ko-KR')
+    });
+  }
+  
   rankings.sort((a, b) => a.time - b.time);
   const topRankings = rankings.slice(0, MAX_RANKINGS);
   saveRankings(topRankings);
@@ -115,8 +144,16 @@ async function saveToGlobalRankings(name, timeInSeconds) {
   }
 }
 
-// 글로벌 랭킹 불러오기 (Google Apps Script)
+// 글로벌 랭킹 불러오기 (Google Apps Script) - 캐싱 적용
 async function getGlobalRankings() {
+  const now = Date.now();
+  
+  // 캐시가 유효하면 반환
+  if (rankingsCache && (now - rankingsCacheTime) < CACHE_DURATION) {
+    console.log('캐시된 랭킹 사용');
+    return rankingsCache;
+  }
+  
   try {
     const response = await fetch(GOOGLE_SCRIPT_URL);
     if (!response.ok) {
@@ -124,13 +161,17 @@ async function getGlobalRankings() {
     }
     
     const data = await response.json();
-    console.log('불러온 데이터:', data);
+    console.log('새로운 랭킹 데이터 로드:', data.length + '개 항목');
     
-    // 이미 정렬되어 있지만 한 번 더 확인
-    return Array.isArray(data) ? data : [];
+    // 캐시 업데이트
+    rankingsCache = Array.isArray(data) ? data : [];
+    rankingsCacheTime = now;
+    
+    return rankingsCache;
   } catch (error) {
     console.error('글로벌 랭킹 불러오기 실패:', error);
-    return [];
+    // 캐시가 있으면 실패해도 반환
+    return rankingsCache || [];
   }
 }
 
@@ -144,11 +185,17 @@ function showCompletionModal(completionTime) {
       <p style="font-size: 18px; margin: 20px 0;">
         완료 시간: <strong>${formatTime(completionTime)}</strong>
       </p>
+      <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 12px; margin-bottom: 15px; font-size: 13px; color: #856404;">
+        <strong>📝 이름 입력 방법:</strong><br>
+        홍길동_과학20 형식으로 입력하세요<br>
+        (예: 김철수_영어15, 이영희_과학18)<br>
+        <strong style="color: #d32f2f;">⚠️ 양식을 지키지 않으면 경품 제공에 제외됩니다!</strong>
+      </div>
       <input 
         type="text" 
         id="player-name" 
-        placeholder="이름을 입력하세요" 
-        maxlength="10"
+        placeholder="이름_학과학번 (예: 홍길동_과학20)" 
+        maxlength="20"
         style="width: 100%; padding: 10px; font-size: 16px; margin: 15px 0; border: 2px solid #ddd; border-radius: 5px; box-sizing: border-box;"
       />
       <button onclick="saveAndShowRankings()" style="width: 100%; padding: 12px; font-size: 16px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 10px;">저장 및 랭킹 보기</button>
@@ -177,15 +224,20 @@ async function saveAndShowRankings() {
   // 로컬 저장
   addRanking(name, completionTime);
   
-  // 글로벌 저장 (Sheetdb)
   const saveBtn = document.querySelector('#completion-modal button:first-of-type');
   saveBtn.textContent = '저장 중...';
   saveBtn.disabled = true;
   
   const success = await saveToGlobalRankings(name, completionTime);
   
+  // 캐시 무효화
+  rankingsCache = null;
+  rankingsCacheTime = 0;
+  
   if (success) {
     showMessage('✅ 글로벌 랭킹에 저장되었습니다!', 2000);
+    // 저장 후 서버 데이터 동기화 대기
+    await new Promise(resolve => setTimeout(resolve, 500));
   } else {
     showMessage('⚠️ 글로벌 저장 실패 (로컬에는 저장됨)', 2000);
   }
@@ -367,7 +419,16 @@ function handleCellClick(num) {
 }
 
 function nextRound() {
-  clearInterval(roundTimer);
+  // 기존 타이머 취소
+  if (roundTimer) {
+    if (typeof roundTimer === 'number' && roundTimer > 0) {
+      cancelAnimationFrame(roundTimer);
+    } else {
+      clearInterval(roundTimer);
+    }
+  }
+  roundTimer = null;
+  
   currentRound++;
   
   if (currentRound > 5) {
@@ -421,17 +482,43 @@ function startGame() {
 }
 
 function startTimer() {
-  let elapsedTime = 0;
-  timerElement.textContent = formatTime(elapsedTime);
+  // 기존 타이머 취소
+  if (roundTimer) {
+    if (typeof roundTimer === 'number' && roundTimer > 0) {
+      cancelAnimationFrame(roundTimer);
+    } else {
+      clearInterval(roundTimer);
+    }
+  }
   
-  roundTimer = setInterval(() => {
-    elapsedTime++;
-    timerElement.textContent = formatTime(elapsedTime);
-  }, 1000);
+  const startTime = Date.now();
+  let lastSecond = 0;
+  
+  function updateTimer() {
+    if (!gameActive) return;
+    
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    
+    // 1초 단위로만 업데이트 (성능 최적화)
+    if (elapsed !== lastSecond) {
+      timerElement.textContent = formatTime(elapsed);
+      lastSecond = elapsed;
+    }
+    
+    roundTimer = requestAnimationFrame(updateTimer);
+  }
+  
+  updateTimer();
 }
 
 function resetGame() {
-  clearInterval(roundTimer);
+  if (roundTimer) {
+    if (typeof roundTimer === 'number' && roundTimer > 0) {
+      cancelAnimationFrame(roundTimer);
+    } else {
+      clearInterval(roundTimer);
+    }
+  }
   gameActive = false;
   gameStartTime = null;
   timerElement.textContent = '00:00';
@@ -445,6 +532,12 @@ startButton.disabled = false;
 
 // ============ 카카오톡 공유 ============
 function shareWithKakao() {
+  // 이미 공유했는지 확인
+  if (hasShared()) {
+    showMessage('⚠️ 공유는 1회만 가능합니다!', 2000);
+    return;
+  }
+  
   if (typeof Kakao === 'undefined') {
     showMessage('카카오톡 공유 기능을 사용할 수 없습니다.', 2000);
     return;
@@ -479,6 +572,7 @@ function shareWithKakao() {
     ],
     success: function(response) {
       console.log('카카오톡 공유 성공:', response);
+      markShared();  // 공유 완료 기록
       addPlayCount();
     },
     fail: function(error) {
