@@ -31,7 +31,6 @@
       <div id="button-group">
         <button id="start-btn" onclick="startGame()">게임 시작</button>
         <button id="share-btn" onclick="shareWithKakao()">카카오톡으로 공유</button>
-        <button id="reset-btn" onclick="resetData()">🔄 내 기회만 초기화</button>
       </div>
     </div>
   </div>
@@ -53,14 +52,16 @@
         <p style="margin-top: 15px; font-size: 13px; color: #666;">
           <strong>💡 기회 시스템:</strong><br>
           • 처음 3회 플레이 기회가 주어집니다<br>
-          • 카카오톡 공유 1회당 +1 기회 획득<br>
+          • 카카오톡 공유는 1회만 가능 (성공 시 +1 기회)<br>
           • 게임 완료 시 글로벌 랭킹에 자동 등록!
         </p>
         <p style="margin-top: 15px; font-size: 13px; color: #666;">
           <strong>🏆 랭킹 시스템:</strong><br>
-          • 게임 완료 후 이름 입력하면 전체 랭킹에 등록<br>
+          • 게임 완료 후 "이름_학과학번" 형식으로 입력<br>
+          (예: 홍길동_과학20)<br>
           • 🏆 랭킹 버튼으로 실시간 순위 확인<br>
-          • 최고 기록에 도전해보세요!
+          • 양식을 지키지 않으면 경품 제외
+          • 랭킹 등록 이후 문회루에 위치한 기획운영국 부스 방문 바람
         </p>
       </div>
       <button class="close-btn" onclick="closeRulesModal()">시작하기</button>
