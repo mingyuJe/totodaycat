@@ -458,19 +458,10 @@ function generateSequence(size) {
 }
 
 function startGame() {
-  const playCount = getPlayCount();
-  
-  if (playCount <= 0) {
-    showMessage('기회가 없습니다! 친구에게 공유해서 기회를 받아보세요 📱', 3000);
-    return;
-  }
-  
-  decrementPlayCount();
-  updatePlayCountDisplay();
-  
+  // 무제한 플레이 모드: 기회 수 검사 및 감소 로직 제거
   gameStartTime = Date.now();
   gameActive = true;
-  
+
   currentRound = 1;
   roundNumberElement.textContent = currentRound;
   gridSize = 2;
